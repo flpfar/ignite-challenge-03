@@ -1,7 +1,13 @@
-import { createContext, ReactNode, useContext, useState } from 'react';
-import { toast } from 'react-toastify';
-import { api } from '../services/api';
-import { Product, Stock } from '../types';
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { toast } from "react-toastify";
+import { api } from "../services/api";
+import { Product, Stock } from "../types";
 
 interface CartProviderProps {
   children: ReactNode;
@@ -23,44 +29,50 @@ const CartContext = createContext<CartContextData>({} as CartContextData);
 
 export function CartProvider({ children }: CartProviderProps): JSX.Element {
   const [cart, setCart] = useState<Product[]>(() => {
-    const storagedCart = localStorage.getItem('@RocketShoes:cart');
+    const storagedCart = localStorage.getItem("@RocketShoes:cart");
 
     if (storagedCart) {
       return JSON.parse(storagedCart);
     }
 
-    // const a = { 
-    //   id: 1,
-    //   title: 'tenis',
-    //   price: 270,
-    //   image: '',
-    //   amount: 1,
-    // }
-
-    // const b = { 
-    //   id: 2,
-    //   title: 'tenis 2',
-    //   price: 100,
-    //   image: '',
-    //   amount: 4,
-    // }
-
-    // const c = { 
-    //   id: 3,
-    //   title: 'tenis 3',
-    //   price: 50,
-    //   image: '',
-    //   amount: 2,
-    // }
+    api.get(`products/${1}`).then(console.log);
 
     return [];
   });
 
+  useEffect(() => {
+    localStorage.setItem("@RocketShoes:cart", JSON.stringify(cart));
+  }, [cart]);
+
   const addProduct = async (productId: number) => {
     try {
-      // TODO
+      const stockResponse = await api.get(`stock/${productId}`);
+      const stockAmount = stockResponse.data.amount;
+
+      if (stockAmount < 1) {
+        toast.error("Quantidade solicitada fora de estoque");
+        return;
+      }
+
+      const productAlreadyOnCart = cart.find(
+        (product) => product.id === productId
+      );
+
+      let newCartProduct: Product = {} as Product;
+
+      if (productAlreadyOnCart) {
+        newCartProduct = {
+          ...productAlreadyOnCart,
+          amount: productAlreadyOnCart.amount + 1,
+        };
+      } else {
+        const productResponse = await api.get(`products/${productId}`);
+        newCartProduct = { ...productResponse.data, amount: 1 };
+      }
+
+      setCart([...cart, newCartProduct]);
     } catch {
-      // TODO
+      toast.error("Erro na adição do produto");
     }
   };
 
