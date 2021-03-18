@@ -47,9 +47,9 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
   const addProduct = async (productId: number) => {
     try {
       const stockResponse = await api.get(`stock/${productId}`);
-      const stockAmount = stockResponse.data.amount;
+      const stockProduct: Stock = stockResponse.data;
 
-      if (stockAmount < 1) {
+      if (stockProduct.amount < 1) {
         toast.error("Quantidade solicitada fora de estoque");
         return;
       }
@@ -58,19 +58,23 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
         (product) => product.id === productId
       );
 
-      let newCartProduct: Product = {} as Product;
+      let newCart: Product[] = [] as Product[];
 
       if (productAlreadyOnCart) {
-        newCartProduct = {
-          ...productAlreadyOnCart,
-          amount: productAlreadyOnCart.amount + 1,
-        };
+        newCart = cart.map((product) =>
+          product.id === productId
+            ? { ...product, amount: product.amount + 1 }
+            : product
+        );
       } else {
         const productResponse = await api.get(`products/${productId}`);
-        newCartProduct = { ...productResponse.data, amount: 1 };
+        const newCartProduct = { ...productResponse.data, amount: 1 };
+        newCart = [...cart, newCartProduct];
       }
 
-      setCart([...cart, newCartProduct]);
+      await api.patch(`stock/${productId}`, { amount: stockProduct.amount - 1 })
+
+      setCart(newCart);
     } catch {
       toast.error("Erro na adição do produto");
     }
