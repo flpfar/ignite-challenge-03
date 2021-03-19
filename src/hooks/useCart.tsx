@@ -101,11 +101,20 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
     amount,
   }: UpdateProductAmount) => {
     try {
-      const isProductAvailable = await isAvailableInStock(productId);
+      if (amount < 1) return;
 
-      if (!isProductAvailable) {
-        toast.error("Quantidade solicitada fora de estoque");
-        return;
+      const product = cart.find((product) => product.id === productId);
+      if (!product) throw new Error();
+
+      const isIncreasing = amount > product.amount;
+
+      if (isIncreasing) {
+        const isProductAvailable = await isAvailableInStock(productId);
+
+        if (!isProductAvailable) {
+          toast.error("Quantidade solicitada fora de estoque");
+          return;
+        }
       }
 
       const newCart = cart.map((product) =>
