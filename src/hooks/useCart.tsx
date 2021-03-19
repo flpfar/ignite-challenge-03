@@ -1,10 +1,4 @@
-import {
-  createContext,
-  ReactNode,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { createContext, ReactNode, useContext, useState } from "react";
 import { toast } from "react-toastify";
 import { api } from "../services/api";
 import { Product, Stock } from "../types";
@@ -42,19 +36,22 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
     const stockResponse = await api.get(`stock/${productId}`);
     const stockProduct: Stock = stockResponse.data;
 
-    if (stockProduct.amount <= 1) {
-      return false;
-    }
+    const productAlreadyOnCart = cart.find(
+      (product) => product.id === productId
+    );
 
-    return true;
+    if (productAlreadyOnCart) {
+      return productAlreadyOnCart.amount < stockProduct.amount;
+    } else {
+      return stockProduct.amount >= 1;
+    }
   }
 
   const addProduct = async (productId: number) => {
     try {
-      
       const isProductAvailable = await isAvailableInStock(productId);
 
-      if(!isProductAvailable) {
+      if (!isProductAvailable) {
         toast.error("Quantidade solicitada fora de estoque");
         return;
       }
@@ -87,15 +84,15 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
 
   const removeProduct = (productId: number) => {
     try {
-      const isProductOnCart = cart.some(product => product.id === productId);
+      const isProductOnCart = cart.some((product) => product.id === productId);
 
-      if(!isProductOnCart) throw new Error();
+      if (!isProductOnCart) throw new Error();
 
-      const newCart = cart.filter(product => product.id !== productId)
+      const newCart = cart.filter((product) => product.id !== productId);
       setCart(newCart);
       localStorage.setItem("@RocketShoes:cart", JSON.stringify(newCart));
     } catch {
-      toast.error('Erro na remoção do produto');
+      toast.error("Erro na remoção do produto");
     }
   };
 
@@ -106,15 +103,13 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
     try {
       const isProductAvailable = await isAvailableInStock(productId);
 
-      if(!isProductAvailable) {
+      if (!isProductAvailable) {
         toast.error("Quantidade solicitada fora de estoque");
         return;
       }
 
       const newCart = cart.map((product) =>
-        product.id === productId
-          ? { ...product, amount: amount }
-          : product
+        product.id === productId ? { ...product, amount: amount } : product
       );
 
       setCart(newCart);
